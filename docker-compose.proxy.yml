@@ -1,0 +1,28 @@
+# ============================================================================
+#  EI FILE ta use korbe jodi VPS e age theke onno website + reverse proxy
+#  (nginx / apache / caddy) chole — jemon tomar hunterflow.cloud.
+#
+#  Eta nijer Caddy chalay NA, port 80/443 dokhol kore NA.
+#  Sudhu app ke localhost:8080 e chalay -> tomar purono proxy
+#  save.hunterflow.cloud ke ei port e forward korbe.
+#
+#  Cholao:  docker compose -f docker-compose.proxy.yml up -d --build
+# ============================================================================
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      - DL_KEY=${DL_KEY:?DL_KEY .env e set koro}
+      - MAX_CONCURRENT=${MAX_CONCURRENT:-3}
+      - MAX_FILE_AGE=${MAX_FILE_AGE:-3600}
+      # - COOKIES_FILE=/app/cookies.txt
+    ports:
+      # sudhu localhost e khola — bairer keu direct dhukte parbe na, proxy lagbe
+      - "127.0.0.1:8080:8000"
+    volumes:
+      - downloads:/app/downloads
+      # - ./cookies.txt:/app/cookies.txt:ro
+
+volumes:
+  downloads:

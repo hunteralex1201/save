@@ -11,11 +11,57 @@ YouTube, Instagram, TikTok, Facebook, X (Twitter) + 1000+ site.
 
 ---
 
-## 🚀 VPS e deploy (production — Docker + Caddy)
+## ⚙️ Dui ta mode — tomar VPS er obostha onujayi
+
+| Mode | Kokhon | Compose file |
+|------|--------|--------------|
+| **A. Standalone** | VPS e onno kono website nei (port 80/443 fka) | `docker-compose.yml` (nijer Caddy + auto SSL) |
+| **B. Existing proxy** | VPS e age theke website chole (jemon `hunterflow.cloud`) | `docker-compose.proxy.yml` + purono proxy te vhost |
+
+> ⚠️ **Tomar khetre Mode B** — karon `hunterflow.cloud` e age theke web chole, ar seta port 80/443 dokhol kore rekheche. Standalone Caddy chalale conflict hobe. Niche **Mode B** dekho.
+
+---
+
+## 🅑 Mode B: VPS e age theke site ache (RECOMMENDED tomar jonno)
+
+App ke localhost:8080 e chalai, purono reverse proxy `save.hunterflow.cloud` ke oikhane forward kore.
+
+**1. DNS:** `save` → VPS IP (A record).
+
+**2. Code + .env:**
+```bash
+git clone https://github.com/hunteralex1201/save.git downloader
+cd downloader
+cp .env.example .env
+nano .env          # DOMAIN=save.hunterflow.cloud, DL_KEY=..., (EMAIL lagbe na)
+```
+
+**3. App চালু (port 80/443 dhore na):**
+```bash
+docker compose -f docker-compose.proxy.yml up -d --build
+curl http://127.0.0.1:8080/health     # {"status":"ok"...} dekhle ok
+```
+
+**4. Purono proxy te `save.hunterflow.cloud` jog koro:**
+- **nginx hole:** [`proxy-examples/nginx-save.conf`](proxy-examples/nginx-save.conf) `/etc/nginx/sites-available/save` e rakho →
+  ```bash
+  ln -s /etc/nginx/sites-available/save /etc/nginx/sites-enabled/
+  nginx -t && systemctl reload nginx
+  certbot --nginx -d save.hunterflow.cloud      # free SSL
+  ```
+- **Caddy hole:** [`proxy-examples/Caddyfile-snippet`](proxy-examples/Caddyfile-snippet) er block main Caddyfile e jog koro → `caddy reload` (SSL auto).
+
+**5. Test:** `https://save.hunterflow.cloud/health` ✅
+
+> Ami VPS e dhuke dekhe nebo kon proxy chole, tarpor thik config ta boshiye debo.
+
+---
+
+## 🅐 Mode A: VPS e onno kichu nei (standalone — Docker + Caddy)
 
 ### Ja ja lagbe
 - Ubuntu/Debian VPS (root/sudo)
-- Ekta domain, ar tar ekta **subdomain** (jemon `dl.tomarsite.com`)
+- Ekta domain, ar tar ekta **subdomain** (jemon `save.hunterflow.cloud`)
 - DNS e ekta **A record**: `dl` → tomar VPS er IP
 
 ### ধাপ ধাপ
@@ -24,7 +70,7 @@ YouTube, Instagram, TikTok, Facebook, X (Twitter) + 1000+ site.
 ```
 Type: A    Name: dl    Value: <VPS_IP>
 ```
-`dl.tomarsite.com` jeno VPS er IP te point kore. (10-30 min lagte pare.)
+`save.hunterflow.cloud` jeno VPS er IP te point kore. (10-30 min lagte pare.)
 
 **2. VPS e code ano:**
 ```bash
@@ -39,7 +85,7 @@ nano .env
 ```
 Boshao:
 ```
-DOMAIN=dl.tomarsite.com
+DOMAIN=save.hunterflow.cloud
 EMAIL=tomar@email.com
 DL_KEY=<lomba-random-secret>      # banate:  openssl rand -hex 24
 ```
@@ -53,7 +99,7 @@ Caddy nijei **free SSL** niye nebe.
 
 **5. Test:**
 ```
-https://dl.tomarsite.com/health
+https://save.hunterflow.cloud/health
 ```
 `{"status":"ok","ffmpeg":true,...}` dekhle ✅ ready.
 
@@ -76,7 +122,7 @@ Shortcuts app → **+** → ei 2 ta action:
 - Method: **GET**
 - URL:
   ```
-  https://dl.tomarsite.com/dl?url=[Shortcut Input]&key=TOMAR_DL_KEY
+  https://save.hunterflow.cloud/dl?url=[Shortcut Input]&key=TOMAR_DL_KEY
   ```
   > `[Shortcut Input]` = magic variable boshao (type koro na). `TOMAR_DL_KEY` = .env er DL_KEY.
 
@@ -90,7 +136,7 @@ Shortcut settings e **"Show in Share Sheet"** ON koro, accepted input e **URLs**
 
 **Sudhu mp3 (gaan)** chaile alada shortcut, URL er sheshe `&audio=1`:
 ```
-https://dl.tomarsite.com/dl?url=[Shortcut Input]&key=TOMAR_DL_KEY&audio=1
+https://save.hunterflow.cloud/dl?url=[Shortcut Input]&key=TOMAR_DL_KEY&audio=1
 ```
 
 ---
@@ -133,7 +179,7 @@ double-click. Eki WiFi te iPhone theke `http://<PC-IP>:8000/dl?url=...` use korb
 
 ## 🛠️ Somossa hole
 
-- **SSL ashche na** → DNS A record thik to? `dl.tomarsite.com` VPS IP te point korche kina `nslookup` diye dekho. Port 80/443 khola thakte hobe. `docker compose logs caddy` dekho.
+- **SSL ashche na** → DNS A record thik to? `save.hunterflow.cloud` VPS IP te point korche kina `nslookup` diye dekho. Port 80/443 khola thakte hobe. `docker compose logs caddy` dekho.
 - **401 Unauthorized** → Shortcut er `&key=` ar `.env` er `DL_KEY` ek to?
 - **Could not download** → `docker compose build --no-cache app && docker compose up -d` (yt-dlp update).
 - **Boro video timeout** → Caddy te already 30 min timeout deya. Shortcut er internet speed dekho.
