@@ -2,6 +2,9 @@
 .env
 cookies.txt
 
+# editor / harness
+.claude/
+
 # python
 .venv/
 __pycache__/
