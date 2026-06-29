@@ -1,6 +1,8 @@
 # secrets
 .env
 cookies.txt
+*.shortcut
+q.mp4
 
 # editor / harness
 .claude/

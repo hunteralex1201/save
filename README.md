@@ -114,30 +114,52 @@ yt-dlp update korte (site change hole): `docker compose build --no-cache app && 
 
 ---
 
-## 📱 iPhone Shortcut banano
+## 🎚️ Quality (100% best)
 
+- **Default** → sob theke valo **H.264 / mp4 (1080p porjonto YouTube e, IG/TikTok/FB e native full)** + AAC audio. **iPhone er Photos e nishchit chole.**
+- `&best=1` → **EKEBARE max** (4K, VP9/AV1 hote pare). Photos e nao chalte pare, kintu **Files** e save hobe — archive er jonno.
+- `&audio=1` → sudhu **mp3 320kbps**.
+
+---
+
+## 📱 iPhone Shortcut
+
+### Soja way — ready file import koro
+2 ta ready shortcut deya ache (tomar domain + key boshano):
+- **Download.shortcut** — video (best iPhone quality)
+- **Download-MP3.shortcut** — sudhu gaan/mp3
+
+iPhone e file ti pathao (AirDrop / iCloud / email) → tap → **Add Shortcut**.
+> Import na hole: Settings → Shortcuts → **Allow Untrusted Shortcuts** ON koro, tarpor abar tap.
+
+Notun kore banate (domain/key change hole):
+```bash
+python gen_shortcut.py save.hunterflow.cloud TOMAR_DL_KEY
+python gen_shortcut.py save.hunterflow.cloud TOMAR_DL_KEY --audio
+```
+
+### Ba haate banao (guaranteed, 2 min)
 Shortcuts app → **+** → ei 2 ta action:
 
 **1) Get Contents of URL**
-- Method: **GET**
-- URL:
-  ```
-  https://save.hunterflow.cloud/dl?url=[Shortcut Input]&key=TOMAR_DL_KEY
-  ```
-  > `[Shortcut Input]` = magic variable boshao (type koro na). `TOMAR_DL_KEY` = .env er DL_KEY.
+- URL: `https://save.hunterflow.cloud/dl`
+- Method: **POST**
+- Request Body: **Form**, ei 2 ta field add koro:
+  | Key | Value |
+  |-----|-------|
+  | `url` | **Shortcut Input** (magic variable) |
+  | `key` | `TOMAR_DL_KEY` |
+  > mp3 chaile arekta field: `audio` = `1`. Max quality chaile: `best` = `1`.
+  >
+  > POST form use korar karon: link e `&`, `?` thakleo encoding niye somossa hoy na.
 
 **2) Save File**
-- File: **Contents of URL**
+- File: **Contents of URL** (ager action er output)
 - "Ask Where to Save" **ON** → Photos/Files jekhane khushi.
 
-Shortcut settings e **"Show in Share Sheet"** ON koro, accepted input e **URLs** select koro. Nam dao "Download".
+Shortcut settings e **"Show in Share Sheet"** ON, accepted input e **URLs**. Nam: "Download".
 
-**Use:** jekono app e video → **Share** → tomar **Download** shortcut → file save! 🎉
-
-**Sudhu mp3 (gaan)** chaile alada shortcut, URL er sheshe `&audio=1`:
-```
-https://save.hunterflow.cloud/dl?url=[Shortcut Input]&key=TOMAR_DL_KEY&audio=1
-```
+**Use:** jekono app e video → **Share** → **Download** → save! 🎉
 
 ---
 
@@ -146,8 +168,10 @@ https://save.hunterflow.cloud/dl?url=[Shortcut Input]&key=TOMAR_DL_KEY&audio=1
 | Endpoint | Ki kore |
 |----------|---------|
 | `GET /health` | server + ffmpeg status |
-| `GET /dl?url=<link>&key=<secret>` | video download (mp4) |
-| `GET /dl?url=<link>&key=<secret>&audio=1` | sudhu mp3 audio |
+| `GET /dl?url=<link>&key=<secret>` | video (best H.264/mp4, iPhone-friendly) |
+| `GET /dl?...&best=1` | ekebare max quality (4K, Files e) |
+| `GET /dl?...&audio=1` | sudhu mp3 320kbps |
+| `POST /dl` (form: url, key, audio, best) | same — Shortcut er jonno (encoding-safe) |
 | `GET /info?url=<link>&key=<secret>` | download na kore title/duration |
 
 ---

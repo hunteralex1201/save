@@ -17,7 +17,7 @@ import asyncio
 import logging
 import mimetypes
 
-from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi import FastAPI, HTTPException, Query, Request, Form
 from fastapi.responses import FileResponse, JSONResponse, HTMLResponse
 from starlette.background import BackgroundTask
 import yt_dlp
@@ -94,39 +94,57 @@ def _cleanup_old():
             pass
 
 
-def _do_download(url: str, audio: bool):
-    """yt-dlp diye download kore (path, out_dir) ferot dey. Blocking."""
+def _do_download(url: str, audio: bool, best: bool = False):
+    """yt-dlp diye download kore (path, out_dir) ferot dey. Blocking.
+
+    audio=True  -> sob theke valo audio -> mp3 320kbps
+    best=True   -> EKEBARE max quality (4K/VP9/AV1 hote pare; iPhone Photos e
+                   nao chalte pare, Files e thakbe)
+    default     -> max quality H.264/mp4 (iPhone e GUARANTEED chole) + fallback
+    """
     req_id = uuid.uuid4().hex[:12]
     out_dir = os.path.join(DOWNLOAD_DIR, req_id)
     os.makedirs(out_dir, exist_ok=True)
 
     ydl_opts = {
-        "outtmpl": os.path.join(out_dir, "%(title).80s.%(ext)s"),
+        "outtmpl": os.path.join(out_dir, "%(title).100s.%(ext)s"),
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
-        "concurrent_fragment_downloads": 4,
-        "retries": 3,
-        "fragment_retries": 5,
+        "concurrent_fragment_downloads": 8,
+        "retries": 5,
+        "fragment_retries": 10,
         "socket_timeout": 30,
+        "trim_file_name": 120,
     }
     if COOKIES_FILE and os.path.isfile(COOKIES_FILE):
         ydl_opts["cookiefile"] = COOKIES_FILE
 
     if audio:
+        # Sob theke valo audio -> mp3 320 (ffmpeg lage)
         ydl_opts["format"] = "bestaudio/best"
         if HAS_FFMPEG:
             ydl_opts["postprocessors"] = [{
                 "key": "FFmpegExtractAudio",
                 "preferredcodec": "mp3",
-                "preferredquality": "192",
+                "preferredquality": "320",
             }]
+    elif not HAS_FFMPEG:
+        # ffmpeg na thakle ek-file best (merge kora jay na)
+        ydl_opts["format"] = "best"
+    elif best:
+        # Ekebare max — codec ja-i hok (4K AV1/VP9 o ney)
+        ydl_opts["format"] = "bv*+ba/b"
+        ydl_opts["merge_output_format"] = "mp4"
     else:
-        if HAS_FFMPEG:
-            ydl_opts["format"] = "bv*+ba/b"
-            ydl_opts["merge_output_format"] = "mp4"
-        else:
-            ydl_opts["format"] = "best"
+        # Default: max quality H.264 (avc1) + m4a -> mp4. iPhone e nishchit chole.
+        # Na pawa gele HEVC, tarpor jekono best.
+        ydl_opts["format"] = (
+            "bv*[vcodec^=avc1]+ba[ext=m4a]/"
+            "bv*[ext=mp4]+ba[ext=m4a]/"
+            "b[ext=mp4]/bv*+ba/b"
+        )
+        ydl_opts["merge_output_format"] = "mp4"
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.extract_info(url, download=True)
@@ -157,22 +175,18 @@ def health():
     return {"status": "ok", "ffmpeg": HAS_FFMPEG, "auth_required": bool(API_KEY)}
 
 
-@app.get("/dl")
-async def dl(
-    request: Request,
-    url: str = Query(..., description="Video/post link"),
-    audio: int = Query(0, description="1 dile sudhu mp3 audio"),
-    key: str = Query("", description="DL_KEY set thakle dorkar"),
-):
+async def _handle(url: str, audio: bool, best: bool, key: str, client: str):
+    """GET ar POST — dui jaygar shared logic."""
     _check_key(key)
+    if not url:
+        raise HTTPException(status_code=422, detail="url lage")
     _cleanup_old()
-    client = request.client.host if request.client else "?"
-    log.info("download %s audio=%s from %s", url, audio, client)
+    log.info("download %s audio=%s best=%s from %s", url, audio, best, client)
 
     async with _sem:
         try:
             # yt-dlp blocking, tai threadpool e chalai
-            path, out_dir = await asyncio.to_thread(_do_download, url, bool(audio))
+            path, out_dir = await asyncio.to_thread(_do_download, url, audio, best)
         except HTTPException:
             raise
         except Exception as e:
@@ -186,6 +200,31 @@ async def dl(
         path, media_type=media_type, filename=filename,
         background=BackgroundTask(shutil.rmtree, out_dir, True),
     )
+
+
+@app.get("/dl")
+async def dl_get(
+    request: Request,
+    url: str = Query(..., description="Video/post link"),
+    audio: int = Query(0, description="1 dile sudhu mp3 audio"),
+    best: int = Query(0, description="1 dile ekebare max quality (4K, Files e)"),
+    key: str = Query("", description="DL_KEY set thakle dorkar"),
+):
+    client = request.client.host if request.client else "?"
+    return await _handle(url, bool(audio), bool(best), key, client)
+
+
+@app.post("/dl")
+async def dl_post(
+    request: Request,
+    url: str = Form(...),
+    audio: int = Form(0),
+    best: int = Form(0),
+    key: str = Form(""),
+):
+    # iOS Shortcut POST form pathaale link encoding niye jhamela hoy na
+    client = request.client.host if request.client else "?"
+    return await _handle(url, bool(audio), bool(best), key, client)
 
 
 @app.get("/info")
