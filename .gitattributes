@@ -1,0 +1,13 @@
+# Linux VPS e jate kaj kore — ei file gulo sob shomoy LF line-ending
+*.sh        text eol=lf
+*.py        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+Dockerfile  text eol=lf
+Caddyfile   text eol=lf
+.env.example text eol=lf
+.dockerignore text eol=lf
+.gitignore  text eol=lf
+
+# Windows-only
+*.bat       text eol=crlf
