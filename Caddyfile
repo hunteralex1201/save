@@ -1,0 +1,29 @@
+# Caddy nijei Let's Encrypt theke free HTTPS/SSL niye ney + auto renew kore.
+# {$DOMAIN} ar {$EMAIL} docker-compose er .env theke ashe.
+
+{
+	email {$EMAIL}
+}
+
+{$DOMAIN} {
+	encode gzip
+
+	# Boro/lomba download er jonno timeout বাড়ানো
+	reverse_proxy app:8000 {
+		transport http {
+			read_timeout 1800s
+			write_timeout 1800s
+			dial_timeout 30s
+		}
+	}
+
+	# Boro video upload/stream allow
+	request_body {
+		max_size 0
+	}
+
+	log {
+		output stdout
+		format console
+	}
+}

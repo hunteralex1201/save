@@ -1,0 +1,43 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      - DL_KEY=${DL_KEY:?DL_KEY .env e set koro}
+      - MAX_CONCURRENT=${MAX_CONCURRENT:-3}
+      - MAX_FILE_AGE=${MAX_FILE_AGE:-3600}
+      # cookies use korle niche COOKIES_FILE + volume khulo
+      # - COOKIES_FILE=/app/cookies.txt
+    expose:
+      - "8000"
+    volumes:
+      - downloads:/app/downloads
+      # - ./cookies.txt:/app/cookies.txt:ro   # optional: private content
+    networks:
+      - web
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:?DOMAIN .env e set koro}
+      - EMAIL=${EMAIL:-admin@example.com}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+    networks:
+      - web
+
+networks:
+  web:
+
+volumes:
+  downloads:
+  caddy_data:
+  caddy_config:

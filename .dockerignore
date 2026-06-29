@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+downloads/
+.env
+.git/
+.gitignore
+README.md
+start.bat
+test_out.bin
+test_audio.bin

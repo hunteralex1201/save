@@ -1,0 +1,14 @@
+# secrets
+.env
+cookies.txt
+
+# python
+.venv/
+__pycache__/
+*.pyc
+
+# runtime
+downloads/
+test_out.bin
+test_audio.bin
+*.part
